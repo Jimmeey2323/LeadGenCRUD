@@ -7,7 +7,7 @@ const lastCol = "T";
 const idRange = "'DataA'!A2:A";
  
 function doGet(e) {
-  return HtmlService.createTemplateFromFile('Index.mini')
+  return HtmlService.createTemplateFromFile('Index-A')
   .evaluate()
   .setTitle('Lead Gen - 3.0 (Mumbai)')
   .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL); // Allow embedding in iframes
