@@ -1,0 +1,516 @@
+// CONSTANTS
+const spreadsheetId = "13hYqpqyPLMlE8Y6wkDGeWXShmR53wrKlz1i2hzhOo5M";
+const dataRange = "'DataA'!A2:T";
+const dataSheet = "DataA";
+const sheetId = "0";
+const lastCol = "T";
+const idRange = "'DataA'!A2:A";
+ 
+function doGet(e) {
+  return HtmlService.createTemplateFromFile('Index.mini')
+  .evaluate()
+  .setTitle('Lead Gen - 3.0 (Mumbai)')
+  .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL); // Allow embedding in iframes
+  }
+
+  // Modify the getLast30Records function to sort by date and fetch the last 30
+function getLast30Records() {
+  try {
+    const allRecords = readRecord(dataRange);
+    
+    // Sort records based on the date column (assuming date is in the 3rd column, adjust if needed)
+    const sortedRecords = allRecords.sort((a, b) => new Date(b[2]) - new Date(a[2]));
+
+    // Fetch the last 30 records
+    const last30Records = sortedRecords.slice(0, 30);
+
+    return last30Records;
+  } catch (error) {
+    console.error('Error in getLast30Records:', error);
+    throw new Error(error.message);
+  }
+}
+
+function getAllRecords() {
+  try {
+    const allRecords = readRecord(dataRange);
+    return allRecords;
+  } catch (error) {
+    console.error('Error in getAllRecords:', error);
+    throw new Error(error.message);
+  }
+} // Added closing brace here
+
+
+
+
+
+function processForm(formObject) {
+  try {
+    console.log('Processing form:', formObject);
+
+    let successMessage = '';
+    let errorMessage = '';
+
+    // Validate the formObject
+    if (!formObject || !formObject.name || !formObject.leadStatus) {
+      errorMessage = 'Invalid formObject. Please check the form data.';
+      console.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    if (formObject.recId) {
+      console.log('Updating existing record:', formObject.recId);
+      const values = getRecordValues(formObject);
+
+      // Log the values for debugging
+      console.log('Update Values:', values);
+
+      updateRecord(values);
+      successMessage = 'Record updated successfully!';
+    } else {
+      console.log('Adding new record:', formObject);
+      const newValues = [getRecordValues(formObject)];
+
+      // Log the newValues for debugging
+      console.log('New Values:', newValues);
+
+      addRecord(newValues);
+      successMessage = 'Record added successfully!';
+    }
+
+    const last30Records = getLast30Records();
+    console.log(successMessage);
+    return last30Records;
+  } catch (error) {
+    console.error('Error in processForm:', error);
+
+    // Log the error message
+    console.error('Error Message:', error.message);
+
+    errorMessage = 'Failed to process form. Please check the console for details.';
+    console.error(errorMessage);
+    throw new Error(error.message); // Rethrow the error
+  }
+}
+
+function parseDate(dateString) {
+  try {
+    console.log('Original Date String:', dateString);
+
+    const parsedDate = new Date(dateString);
+
+    if (isNaN(parsedDate) || parsedDate.toString() === 'Invalid Date') {
+      throw new Error('Invalid date');
+    }
+
+    return parsedDate.toISOString().split('T')[0];
+  } catch (error) {
+    console.error('Error parsing date:', error);
+    return ''; // Return an empty string for an invalid date
+  }
+}
+
+function getRecordValues(formObject) {
+  const recId = formObject.recId || generateUniqueId();
+  const dateValue = formObject.date ? parseDate(formObject.date) : '';
+
+  return [
+    recId,
+    formObject.name,
+    dateValue,
+    formObject.leadStatus,
+    formObject.leadSource,
+    formObject.phone,
+    formObject.email,
+    formObject.leadAssociate,
+    formObject.leadStage,
+    formObject.product,
+    formObject.remarks,
+    formObject.fu1,
+    formObject.multilineText1,
+    formObject.fu2,
+    formObject.multilineText2,
+    formObject.fu3,
+    formObject.multilineText3,
+    formObject.fu4,
+    formObject.multilineText4,
+    formObject.trialStatus,
+  ];
+}
+
+function populateForm(id) {
+  try {
+    const data = getRecordById(id);
+
+    if (data && data.length > 0) {
+      const record = data[0];
+      const populatedForm = {
+        recId: record[0],
+        name: record[1],
+        date: record[2],
+        leadStatus: record[3],
+        leadSource: record[4],
+        phone: record[5],
+        email: record[6],
+        leadAssociate: record[7],
+        leadStage: record[8],
+        product: record[9],
+        remarks: record[10],
+        fu1: record[11],
+        multilineText1: record[12],
+        fu2: record[13],
+        multilineText2: record[14],
+        fu3: record[15],
+        multilineText3: record[16],
+        fu4: record[17],
+        multilineText4: record[18],
+        booked: record[19] === 'true', // Adjusted for radio button value
+        completed: record[19] === 'true' // Adjusted for radio button value
+      };
+
+      return populatedForm;
+    } else {
+      console.error('Record not found for ID:', id);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error in populateForm:', error);
+    throw new Error(error.message);
+  }
+}
+
+function createTable() {
+  try {
+    const data = getLast30Records();
+    return data;
+  } catch (error) {
+    console.error('Error in createTable:', error);
+    throw new Error(error.message);
+  }
+}
+
+function addRecord(values) {
+  try {
+    const valueRange = Sheets.newValueRange();
+    valueRange.values = values;
+    Sheets.Spreadsheets.Values.update(valueRange, spreadsheetId, dataRange, { valueInputOption: "RAW" });
+  } catch (error) {
+    console.error('Error in addRecord:', error);
+    throw new Error(error.message);
+  }
+}
+
+function readRecord(range) {
+  try {
+    let result = Sheets.Spreadsheets.Values.get(spreadsheetId, range);
+    return result.values;
+  } catch (error) {
+    console.error('Error in readRecord:', error);
+    throw new Error(error.message);
+  }
+}
+
+function updateRecord(values) {
+  try {
+    console.log('Inside updateRecord server-side function');
+
+    // Log the received values for debugging
+    console.log('Received Values:', values);
+
+    // Assuming the recId is the first element in the values array
+    const recId = values[0];
+
+    // Log the recId for debugging
+    console.log('RecId:', recId);
+
+    const updateRange = getRangeById(recId);
+
+    if (!updateRange) {
+      console.error('Record not found for ID:', recId);
+      throw new Error('Record not found');
+    }
+
+    // Log the updateRange for debugging
+    console.log('Update Range:', updateRange);
+
+    const valueRange = Sheets.newValueRange();
+    valueRange.values = [values];
+    Sheets.Spreadsheets.Values.update(valueRange, spreadsheetId, updateRange, { valueInputOption: 'RAW' });
+
+    console.log('Record updated successfully');
+  } catch (error) {
+    console.error('Error in updateRecord:', error);
+    // Optionally, you may want to handle this case differently or log an error message
+    // throw new Error(error.message);
+  }
+}
+
+function deleteRecord(id) {
+  try {
+    const rowToDelete = getRowIndexById(id);
+    const deleteRequest = {
+      "deleteDimension": {
+        "range": {
+          "sheetId": sheetId,
+          "dimension": "ROWS",
+          "startIndex": rowToDelete,
+          "endIndex": rowToDelete + 1
+        }
+      }
+    };
+    Sheets.Spreadsheets.batchUpdate({ "requests": [deleteRequest] }, spreadsheetId);
+    return getLast30Records();
+  } catch (error) {
+    console.error('Error in deleteRecord:', error);
+    throw new Error(error.message);
+  }
+}
+
+function getRecordById(id) {
+  try {
+    if (!id || !checkId(id)) {
+      return null;
+    }
+    const range = getRangeById(id);
+    if (!range) {
+      return null;
+    }
+    const result = readRecord(range);
+    return result;
+  } catch (error) {
+    console.error('Error in getRecordById:', error);
+    throw new Error(error.message);
+  }
+}
+
+function getRowIndexById(id) {
+  try {
+    if (!id) {
+      throw new Error('Invalid ID');
+    }
+
+    const idList = readRecord(idRange);
+    for (var i = 0; i < idList.length; i++) {
+      if (id == idList[i][0]) {
+        var rowIndex = parseInt(i + 1);
+        return rowIndex;
+      }
+    }
+  } catch (error) {
+    console.error('Error in getRowIndexById:', error);
+    throw new Error(error.message);
+  }
+}
+
+function checkId(id) {
+  try {
+    const idList = readRecord(idRange).flat();
+    return idList.includes(id);
+  } catch (error) {
+    console.error('Error in checkId:', error);
+    throw new Error(error.message);
+  }
+}
+
+function getRangeById(id) {
+  try {
+    if (!id) {
+      return null;
+    }
+    const idList = readRecord(idRange);
+    const rowIndex = idList.findIndex(item => item[0] === id);
+    if (rowIndex === -1) {
+      return null;
+    }
+    const range = `DataA!A${rowIndex + 2}:${lastCol}${rowIndex + 2}`;
+    return range;
+  } catch (error) {
+    console.error('Error in getRangeById:', error);
+    throw new Error(error.message);
+  }
+}
+
+function include(filename) {
+  try {
+    return HtmlService.createHtmlOutputFromFile(filename)
+      .getContent();
+  } catch (error) {
+    console.error('Error in include:', error);
+    throw new Error(error.message);
+  }
+}
+
+function generateUniqueId() {
+  try {
+    let id = Utilities.getUuid();
+    return id;
+  } catch (error) {
+    console.error('Error in generateUniqueId:', error);
+    throw new Error(error.message);
+  }
+}
+
+function sentenceCase(input) {
+  try {
+    return input.replace(/(^|\.\s+|\n\s*)([a-z])/g, (match, group1, group2) => group1 + group2.toUpperCase());
+  } catch (error) {
+    console.error('Error in sentenceCase:', error);
+    throw new Error(error.message);
+  }
+}
+
+function searchRecords(formObject) {
+  try {
+    let result = [];
+    if (formObject.searchText) {
+      const data = readRecord(dataRange);
+      const searchText = formObject.searchText;
+
+      for (let i = 0; i < data.length; i++) {
+        for (let j = 0; j < data[i].length; j++) {
+          const cellValue = data[i][j];
+          if (cellValue.toLowerCase().includes(searchText.toLowerCase())) {
+            result.push(data[i]);
+            break;
+          }
+        }
+      }
+    }
+
+    // Optionally, reset the search form after the data is loaded
+    formObject.searchText = ''; // Assuming searchText is the ID of the input field
+    return result;
+  } catch (error) {
+    console.error('Error in searchRecords:', error);
+    throw new Error(error.message);
+  }
+}
+
+function generateUniqueID(name, phone) {
+  // Concatenate the data
+  var dataString = name + phone ;
+
+  // Generate a SHA-256 hash of the concatenated data
+  var hash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, dataString);
+  var uniqueID = Utilities.base64Encode(hash);
+
+  return uniqueID;
+}
+
+function addDataToSheet() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = spreadsheet.getSheetByName('DataA'); // Replace with your actual sheet name
+
+  // Assuming your data is in columns B, F, and G
+  var range = sheet.getDataRange();
+  var values = range.getValues();
+
+  // Loop through each row and add a unique ID to column A for filled rows
+  for (var i = 1; i < values.length; i++) {
+    var name = values[i][1]; // Column B
+    var phone = values[i][5]; // Column F
+
+    // Check if the row is not empty
+    if (name !== "" && phone !== "") {
+      // Generate unique ID
+      var uniqueID = generateUniqueID(name, phone);
+
+      // Add the unique ID to column A
+      sheet.getRange(i + 1, 1).setValue(uniqueID);
+    }
+  }
+}
+
+// Example usage
+function testAddDataToSheet() {
+  // Run this function to add unique IDs to your sheet for filled rows
+  addDataToSheet();
+}
+
+function updateData() {
+  // Get the active spreadsheet
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Get the sheets by name
+  var bsSheet = spreadsheet.getSheetByName('BS');
+  var dataSheet = spreadsheet.getSheetByName('DataA');
+
+  // Get the values in column A of BS sheet
+  var bsValues = bsSheet.getRange('A2:A' + bsSheet.getLastRow()).getValues().flat();
+
+  // Get the values in column A of Data sheet
+  var dataValues = dataSheet.getRange('A2:A' + dataSheet.getLastRow()).getValues().flat();
+
+  // Find values in BS that are not in Data
+  var newValues = bsValues.filter(value => !dataValues.includes(value));
+
+  // Check if there are new values to process
+  if (newValues.length > 0) {
+    // Get the range of data in BS sheet
+    var bsRange = bsSheet.getRange('A2:U');
+    var bsData = bsRange.getValues();
+
+    // Create a batch array to store rows for appending
+    var batchArray = [];
+
+    // Loop through new values and add corresponding rows from BS to batchArray
+    newValues.forEach(value => {
+      var bsRowIndex = bsValues.indexOf(value) + 2; // Adding 2 to account for header row
+
+      // Check if the row index is valid
+      if (bsRowIndex > 1 && bsRowIndex <= bsData.length) {
+        var bsRowToCopy = bsData[bsRowIndex - 1]; // -1 to convert to 0-based index
+        batchArray.push(bsRowToCopy);
+      }
+    });
+
+    // Append the batch array to Data sheet
+    if (batchArray.length > 0) {
+      dataSheet.getRange(dataSheet.getLastRow() + 1, 1, batchArray.length, batchArray[0].length).setValues(batchArray);
+    }
+  }
+
+  // Log a message indicating the script has finished
+  Logger.log('Script has finished running.');
+  Browser.msgBox('Script Finished Running');
+}
+
+function combinedtrigger(){
+  addDataToSheet();
+  updateData();
+}
+
+function getData(){
+  var spreadSheetId = "13hYqpqyPLMlE8Y6wkDGeWXShmR53wrKlz1i2hzhOo5M"; //CHANGE
+  var dataRange1     = "CustomersA!A2:F"; //CHANGE
+ 
+  var range   = Sheets.Spreadsheets.Values.get(spreadSheetId,dataRange1);
+  var values  = range.values;
+ 
+  return values;
+}
+// Replace with your OpenAI API Key
+var OPENAI_API_KEY = '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';
+
+function callOpenAI(userMessage) {
+  var url = 'https://api.openai.com/v1/chat/completions';
+  var options = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + OPENAI_API_KEY
+    },
+    payload: JSON.stringify({
+      'model': 'gpt-3.5-turbo',
+      'messages': [{
+        'role': 'user', 
+        'content': userMessage
+      }],
+      'temperature': 0.7
+    })
+  };
+  
+  var response = UrlFetchApp.fetch(url, options);
+  return JSON.parse(response.getContentText());
+}
