@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chatbot</title>
+  <style>
+    #openChatbot {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px;
+      border: none;
+      border-radius: 40%;
+      background-color: #f5040f;
+      color: white;
+      cursor: pointer;
+      font-size: 20px;
+      transition: transform 0.3s;
+    }
+
+    #openChatbot:hover {
+      transform: scale(1.5);
+      background-color:#000000;
+      color:#FFFFFF;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+    }
+
+    .chat-container {
+      width: 300px;
+      margin: auto;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 20px;
+      background-color: #fafafa;
+    }
+
+    #chatbox {
+      height: 400px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
+
+    #userInput {
+      display: flex;
+    }
+
+    #textInput {
+      flex-grow: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
+
+    #userInput input[type="submit"] {
+      margin-left: 10px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      background-color: #007BFF;
+      color: white;
+      cursor: pointer;
+    }
+
+    .bot, .user {
+      margin: 10px 0;
+    }
+
+    .bot {
+      align-self: flex-start;
+      background-color: #007BFF;
+      color: white;
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .user {
+      align-self: flex-end;
+      background-color: #eee;
+      padding: 10px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <button id="openChatbot">+</button>
+
+  <div id="chat-container" style="display: none;">
+    <div id="chatbox">
+      <p class="bot">Hello Physiquer! How can I assist you today?😉</p>
+    </div>
+    
+    <form id="userInput" action="">
+      <input id="textInput" type="text" name="msg" placeholder="Ask a question...">
+      <input type="submit" value="Send">
+    </form>
+  </div>
+  
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script>
+    $('#openChatbot').click(function() {
+      $('#chat-container').toggle();
+    });
+
+    $('#userInput').submit(function(e) {
+      e.preventDefault();
+      var input = $('#textInput').val();
+      $('#textInput').val('');
+      $('#chatbox').append(`<p class="user">${input}</p>`);
+      
+      google.script.run.withSuccessHandler(function(response) {
+        // Handle the response from the OpenAI API
+        $('#chatbox').append(`<p class="bot">${response.choices[0].message.content}</p>`);
+      }).callOpenAI(input);
+    });
+  </script>
+</body>
+</html>
