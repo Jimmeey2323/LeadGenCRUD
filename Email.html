@@ -1,0 +1,99 @@
+function sendEmailForNewLeads() {
+  try {
+    // Access the spreadsheet and sheet
+    var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = spreadsheet.getSheetByName("DataA");
+
+    // Get all data in the sheet
+    var data = sheet.getDataRange().getValues();
+
+    // Initialize variables for the email details
+    var newLeadsTable = "";
+
+    // Loop through each row
+    for (var i = 1; i < data.length; i++) {
+      var columnLValue = data[i][25]; // Assuming column L is the 12th column (0-based index)
+
+      // Check if column L contains the word "New"
+      if (columnLValue && columnLValue.toString().toLowerCase() === "new") {
+        // Format the date in IST
+        var dateIST = Utilities.formatDate(new Date(data[i][2]), "IST", "EEE, MMM dd yyyy 'at' hh:mm a");
+
+        // Add row information to the table
+        newLeadsTable +=
+          "<tr>" +
+          "<td style='border: 1px solid #dddddd; text-align: left; padding: 8px;'>" + data[i][1] + "</td>" +
+          "<td style='border: 1px solid #dddddd; text-align: left; padding: 8px;'>" + dateIST + "</td>" +
+          "<td style='border: 1px solid #dddddd; text-align: left; padding: 8px;'>" + data[i][4] + "</td>" +
+          "<td style='border: 1px solid #dddddd; text-align: left; padding: 8px;'>" + data[i][5] + "</td>" +
+          "<td style='border: 1px solid #dddddd; text-align: left; padding: 8px;'>" + data[i][6] + "</td>" +
+          "</tr>";
+
+        // Update column L to "Notified"
+        sheet.getRange(i + 1, 26).setValue("Notified");
+
+        // Log success for each row
+        Logger.log("Email details added successfully for row " + (i + 1) + ".");
+      }
+    }
+
+    // If there are new leads, send the consolidated email
+    if (newLeadsTable !== "") {
+      // Prepare the email details
+      var subject = "New Leads Alert: Action Required";
+      var body =
+        "<html>" +
+        "<body style='background-color: #f8f8f8; margin: 0; padding: 0;'>" +
+        "<div style='max-width: 800px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);'>" +
+        "<div style='text-align: center; padding: 20px;'>" +
+        "<img src='https://i.imgur.com/9mOm7gP.png' alt='Logo' style='width: 100%; max-width: 200px;'>" +
+        "</div>" +
+        "<div style='margin: 20px;'>" +
+        "<p>Dear Team,</p>" +
+        "<p>We have received new leads in the Lead Gen sheet that require your attention. Please reach out to them and update the sheet with the necessary information.</p>" +
+        "<table style='border-collapse: collapse; width: 100%;'>" +
+        "<tr style='background-color: #3498db; color: #ffffff;'>" +
+        "<th style='border: 1px solid #dddddd; text-align: left; padding: 10px;'>Name</th>" +
+        "<th style='border: 1px solid #dddddd; text-align: left; padding: 10px;'>Date</th>" +
+        "<th style='border: 1px solid #dddddd; text-align: left; padding: 10px;'>Source</th>" +
+        "<th style='border: 1px solid #dddddd; text-align: left; padding: 10px;'>Phone</th>" +
+        "<th style='border: 1px solid #dddddd; text-align: left; padding: 10px;'>Email</th>" +
+        "</tr>" +
+        newLeadsTable +
+        "</table>" +
+        "<p>Best regards,<br>Jimmeey Gondaa</p>" +
+        "<p style='text-align: center;'>" +
+        "<a href='https://docs.google.com/spreadsheets/d/1kYtLXdsZNPzEDCBi5E0ixPSHNxxflzokgAk26HlWt4E/edit#gid=0' style='background-color: #071e7a; color: white; padding: 10px 20px; text-decoration: none; display: inline-block; border-radius: 15px;' onmouseover='this.style.backgroundColor=\"#fff60c\"' onmouseout='this.style.backgroundColor=\"#071e7a\"'>" +
+        "View Lead Gen Sheet" +
+        "</a>" +
+        "</p>" +
+        "</div>" +
+        "</div>" +
+        "</body>" +
+        "</html>";
+
+      // Send email to multiple recipients
+      var recipients = ["akshay@physique57mumbai.com","priyanka@physique57mumbai.com","zahur@physique57mumbai.com","jimmeey@physique57india.com"];
+      MailApp.sendEmail({
+        to: recipients.join(","),
+        subject: subject,
+        htmlBody: body,
+        attachments: [generatePdfAttachment(spreadsheet, "DataA")]
+      });
+
+      // Log success for sending the email
+      Logger.log("Consolidated email sent successfully.");
+    } else {
+      // Log that no new leads were found
+      Logger.log("No new leads found. No email sent.");
+    }
+  } catch (error) {
+    // Handle errors and log them
+    Logger.log("Error: " + error.toString());
+  }
+}
+
+function generatePdfAttachment(spreadsheet, sheetName) {
+  var blob = spreadsheet.getBlob().getAs('application/pdf').setName(sheetName + ".pdf");
+  return blob;
+}
